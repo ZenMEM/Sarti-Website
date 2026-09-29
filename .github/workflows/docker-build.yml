@@ -1,0 +1,80 @@
+name: Docker Build
+
+on:
+  schedule:
+    # run every Tuesday at 03:27
+    - cron: '27 03 * * 2'
+  # run on every push to the main branch
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    name: build the Docker image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      - name: Log in to Github registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Login to dhi.io registry except on PR
+      # for hardened images
+      - name: Log in to dhi.io
+        uses: docker/login-action@v4
+        with:
+          registry: dhi.io
+          username: vifebot
+          password: ${{ secrets.VIFEBOT_DOCKERHUB_TOKEN }}
+
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=${{ github.ref == 'refs/heads/main' }}
+
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          build-args: BASE_IMAGE=dhi.io/nginx:1
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  clean:
+    name: remove untagged images from Github package registry
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    needs: build
+    steps:
+      - name: ghcr.io cleanup action
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          package: Sarti-Website
+          delete-untagged: true
+          dry-run: false
+          validate: true
+          older-than: 2 weeks
+          token: ${{ secrets.GITHUB_TOKEN }}
