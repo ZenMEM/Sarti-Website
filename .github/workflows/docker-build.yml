@@ -72,7 +72,7 @@ jobs:
       - name: ghcr.io cleanup action
         uses: dataaxiom/ghcr-cleanup-action@v1
         with:
-          package: Sarti-Website
+          package: sarti-website
           delete-untagged: true
           dry-run: false
           validate: true
