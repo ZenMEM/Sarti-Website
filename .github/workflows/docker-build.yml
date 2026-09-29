@@ -38,8 +38,8 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: dhi.io
-          username: vifebot
-          password: ${{ secrets.VIFEBOT_DOCKERHUB_TOKEN }}
+          username: ${{ secrets.ZENMEMBOT_DOCKERHUB_USERNAME }}
+          password: ${{ secrets.ZENMEMBOT_DOCKERHUB_TOKEN }}
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
